@@ -1,126 +1,383 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Departure Board</title>
+  <style>
+    :root {
+      --primary: #0070f3;
+      --primary-hover: #0051a2;
+      --bg: #f4f6f8;
+      --card-bg: #ffffff;
+      --text: #1a1a1a;
+      --muted: #666666;
+      --border: #e2e8f0;
+      --success-bg: #def7ec;
+      --success-text: #03543f;
+      --warning-bg: #fde8e8;
+      --warning-text: #9b1c1c;
+    }
 
-    <title>My Bus Stops</title>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 750px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      background-color: var(--bg);
+      color: var(--text);
+    }
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            background: #f2f2f2;
-        }
+    .card {
+      background: var(--card-bg);
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
 
-        .buttons {
-            display: flex;
-            gap: 5px;
-            padding: 10px;
-            background: #222;
-        }
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
 
-        .buttons button {
-            flex: 1;
-            padding: 12px 5px;
-            border: none;
-            border-radius: 6px;
-            background: white;
-            cursor: pointer;
-            font-weight: bold;
-        }
+    input {
+      flex: 1;
+      padding: 0.6rem 0.8rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
 
-        .buttons button.active {
-            background: #ccc;
-        }
+    button {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
 
-        #status {
-            padding: 10px;
-            text-align: center;
-        }
+    .btn-search { background-color: var(--primary); color: white; }
+    .btn-search:hover { background-color: var(--primary-hover); }
+    .btn-refresh { background-color: #e2e8f0; color: #1a202c; }
+    .btn-refresh:hover { background-color: #cbd5e1; }
 
-        #departures {
-            padding: 10px;
-        }
-    </style>
+    /* Custom Stop Header Block */
+    .stop-header {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1.2rem;
+      display: none;
+    }
+
+    .stop-main-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+
+    .stop-indicator {
+      font-size: 0.95rem;
+      color: #475569;
+      margin-top: 0.2rem;
+      font-weight: 500;
+    }
+
+    .stop-atco {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+      font-weight: 600;
+    }
+
+    /* Departures Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.8rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    th {
+      background-color: #f8fafc;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .line-number {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .operator-name {
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: block;
+    }
+
+    .destination-title {
+      font-weight: 600;
+      display: block;
+    }
+
+    .vehicle-info {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-right: 4px;
+    }
+
+    .badge-due { background-color: var(--success-bg); color: var(--success-text); }
+    .badge-live { background-color: #e0f2fe; color: #0369a1; }
+    .badge-sched { background-color: #f1f5f9; color: #475569; }
+    .badge-late { background-color: var(--warning-bg); color: var(--warning-text); }
+    .badge-ontime { background-color: #f0fdf4; color: #15803d; }
+
+    .error { color: #d93025; font-weight: bold; margin-top: 1rem; }
+    .status { font-style: italic; color: var(--muted); margin-bottom: 0.5rem; }
+  </style>
 </head>
-
 <body>
 
-    <div class="buttons">
-        <button onclick="loadStop('370021129', this)">STOP 1</button>
-        <button onclick="loadStop('370023697', this)">STOP 2</button>
-        <button onclick="loadStop('370022870', this)">STOP 3</button>
-        <button onclick="loadStop('370021171', this)">STOP 4</button>
+  <div class="card">
+    <div class="controls">
+      <input type="text" id="stopInput" value="370021171" placeholder="Enter AtcoCode">
+      <button class="btn-search" onclick="fetchDepartures()">Get Times</button>
+      <button class="btn-refresh" onclick="fetchDepartures()">🔄 Refresh</button>
     </div>
 
-    <div id="status">
-        Loading...
+    <!-- Stop Header Box -->
+    <div id="stopHeader" class="stop-header">
+      <div id="stopMainName" class="stop-main-name"></div>
+      <div id="stopIndicator" class="stop-indicator"></div>
+      <div id="stopAtco" class="stop-atco"></div>
     </div>
 
-    <div id="departures"></div>
+    <div id="status" class="status"></div>
+    <div id="error" class="error"></div>
 
+    <table id="departuresTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>Line / Operator</th>
+          <th>Destination & Details</th>
+          <th>Tracking</th>
+          <th>Expected</th>
+        </tr>
+      </thead>
+      <tbody id="departuresBody"></tbody>
+    </table>
+  </div>
 
-<script>
+  <script>
+    const WORKER_URL = "https://falling-scene-1424.paul-russell.workers.dev";
 
-async function loadStop(stopCode, button) {
+    // Helper: Calculates "DUE NOW" or exact minutes remaining
+    function parseDepartureTiming(item) {
+      const expTime = item.expected || item.expected_departure_time || item.aimed_departure_time;
+      const schTime = item.scheduled || item.aimed_departure_time;
 
-    // Highlight selected button
-    document.querySelectorAll(".buttons button").forEach(btn => {
-        btn.classList.remove("active");
-    });
+      const expectedDate = expTime ? new Date(expTime) : null;
+      const scheduledDate = schTime ? new Date(schTime) : null;
 
-    if (button) {
-        button.classList.add("active");
-    }
+      let displayTime = "Due";
+      let delayText = "";
 
-    document.getElementById("status").textContent =
-        "Loading stop " + stopCode + "...";
+      if (expectedDate && !isNaN(expectedDate.getTime())) {
+        const now = new Date();
+        const diffMins = Math.round((expectedDate - now) / (1000 * 60));
 
-    try {
-
-        const response = await fetch(
-            "https://journeyplanner.travelsouthyorkshire.com/JourneyPlanner/RefreshBusDeparturesModel",
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
-                },
-
-                body: "fromCode=" + encodeURIComponent(stopCode)
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error("HTTP " + response.status);
+        if (diffMins <= 1) {
+          displayTime = `<span class="badge badge-due">DUE NOW</span>`;
+        } else if (diffMins <= 60) {
+          displayTime = `<strong>${diffMins} mins</strong>`;
+        } else {
+          displayTime = expectedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        const html = await response.text();
+        if (scheduledDate && !isNaN(scheduledDate.getTime())) {
+          const delayMins = Math.round((expectedDate - scheduledDate) / (1000 * 60));
+          if (delayMins >= 2) {
+            delayText = `<span class="badge badge-late">+${delayMins}m Late</span>`;
+          } else if (delayMins <= -2) {
+            delayText = `<span class="badge badge-ontime">${Math.abs(delayMins)}m Early</span>`;
+          } else {
+            delayText = `<span class="badge badge-ontime">On Time</span>`;
+          }
+        }
+      }
 
-        document.getElementById("departures").innerHTML = html;
-
-        document.getElementById("status").textContent =
-            "Stop " + stopCode;
-
+      return { displayTime, delayText };
     }
-    catch (error) {
 
-        console.error(error);
+    async function fetchDepartures() {
+      const stopCode = document.getElementById("stopInput").value.trim();
+      const statusEl = document.getElementById("status");
+      const errorEl = document.getElementById("error");
+      const tableEl = document.getElementById("departuresTable");
+      const bodyEl = document.getElementById("departuresBody");
+      const stopHeader = document.getElementById("stopHeader");
 
-        document.getElementById("status").textContent =
-            "Could not load timetable";
+      statusEl.textContent = "Fetching live stop data...";
+      errorEl.textContent = "";
+      bodyEl.innerHTML = "";
 
-        document.getElementById("departures").innerHTML =
-            "<p>" + error.message + "</p>";
+      if (!stopCode) {
+        errorEl.textContent = "Please enter a valid AtcoCode.";
+        statusEl.textContent = "";
+        return;
+      }
+
+      try {
+        const response = await fetch(`${WORKER_URL}/?stop=${encodeURIComponent(stopCode)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || data.message || `Server error: ${response.status}`);
+        }
+
+    // ==========================================
+        // 1. STOP NAME & DETAILS LOOKUP LOGIC
+        // ==========================================
+        
+        // Debug check in browser console (F12)
+        console.log("Raw API Response:", data);
+
+        // Get stop name directly from root JSON
+        const mainName = data.stop_name || `Stop ${stopCode}`;
+        const indicator = data.indicator || "";
+
+        console.log("Extracted Name:", mainName);
+
+        // Target the DOM elements
+        const headerEl = document.getElementById("stopHeader");
+        const mainNameEl = document.getElementById("stopMainName");
+        const indicatorEl = document.getElementById("stopIndicator");
+        const atcoEl = document.getElementById("stopAtco");
+
+        if (headerEl && mainNameEl && atcoEl) {
+          mainNameEl.textContent = mainName;
+          
+          if (indicatorEl) {
+            if (indicator) {
+              indicatorEl.textContent = indicator;
+              indicatorEl.style.display = "block";
+            } else {
+              indicatorEl.style.display = "none";
+            }
+          }
+
+          atcoEl.textContent = stopCode;
+          
+          // Force header visibility
+          headerEl.style.display = "block";
+        } else {
+          console.error("One or more stop header HTML elements are missing from your HTML structure.");
+        }
+
+        // ==========================================
+        // 2. PROCESS BUS DEPARTURES LIST
+        // ==========================================
+        let rawDepartures = data.departures || data.services || data.results || [];
+
+        if (rawDepartures.length === 0) {
+          statusEl.textContent = `No upcoming departures found for stop ${stopCode}.`;
+          tableEl.style.display = "none";
+          return;
+        }
+
+        // Remove duplicates
+        const uniqueDepartures = [];
+        const seenKeys = new Set();
+
+        for (const item of rawDepartures) {
+          const line = item.line || item.line_name || item.published_line_name || "Bus";
+          const rawTime = item.expected || item.scheduled || item.expected_departure_time;
+          const vehicleRef = item.vehicle_id || item.vehicle_ref || "";
+
+          const key = vehicleRef ? `${vehicleRef}_${rawTime}` : `${line}_${rawTime}`;
+
+          if (!seenKeys.has(key)) {
+            seenKeys.add(key);
+            uniqueDepartures.push(item);
+          }
+        }
+
+        // Limit to next 3 buses
+        const nextThreeBuses = uniqueDepartures.slice(0, 3);
+
+        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        statusEl.textContent = `Updated at ${nowStr} (Showing next ${nextThreeBuses.length} buses)`;
+
+        nextThreeBuses.forEach((item) => {
+          const row = document.createElement("tr");
+
+          const line = item.line || item.line_name || "Bus";
+          const operator = item.operator_name || item.operator || "Local Operator";
+          const destination = item.destination || item.destination_name || "Unknown";
+          
+          const isLive = item.is_realtime || item.monitored || item.is_live;
+          const vehicleId = item.vehicle_id || item.vehicle_ref ? `Fleet #${item.vehicle_id || item.vehicle_ref}` : "";
+          const occupancy = item.occupancy ? `• ${item.occupancy}` : "";
+          const vehicleMeta = [vehicleId, occupancy].filter(Boolean).join(" ");
+
+          const trackingBadge = isLive 
+            ? `<span class="badge badge-live">📡 LIVE</span>`
+            : `<span class="badge badge-sched">🕒 Scheduled</span>`;
+
+          const { displayTime, delayText } = parseDepartureTiming(item);
+
+          row.innerHTML = `
+            <td>
+              <span class="line-number">${line}</span>
+              <span class="operator-name">${operator}</span>
+            </td>
+            <td>
+              <span class="destination-title">${destination}</span>
+              ${vehicleMeta ? `<div class="vehicle-info">${vehicleMeta}</div>` : ""}
+            </td>
+            <td>
+              ${trackingBadge}
+              ${delayText}
+            </td>
+            <td>${displayTime}</td>
+          `;
+          bodyEl.appendChild(row);
+        });
+
+        tableEl.style.display = "table";
+
+      } catch (err) {
+        statusEl.textContent = "";
+        errorEl.textContent = `Error fetching departures: ${err.message}`;
+        stopHeader.style.display = "none";
+      }
     }
-}
 
-
-// Load your fourth stop when the page opens
-loadStop("370021171", document.querySelectorAll(".buttons button")[3]);
-
-</script>
-
+    // Run automatically when the page opens
+    fetchDepartures();
+  </script>
 </body>
 </html>

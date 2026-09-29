@@ -37,12 +37,13 @@
 
     .controls {
       display: flex;
+      flex-wrap: wrap;
       gap: 0.5rem;
       margin-bottom: 1.5rem;
     }
 
     input {
-      flex: 1;
+      flex: 0 0 130px;
       padding: 0.6rem 0.8rem;
       border: 1px solid #ccc;
       border-radius: 6px;
@@ -50,7 +51,8 @@
     }
 
     button {
-      padding: 0.6rem 1.2rem;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.9rem;
       border: none;
       border-radius: 6px;
       cursor: pointer;
@@ -97,13 +99,14 @@
     /* Departures Table */
     table {
       width: 100%;
+      table-layout: fixed;
       border-collapse: collapse;
       margin-top: 0.5rem;
     }
 
     th, td {
       text-align: left;
-      padding: 0.8rem 0.6rem;
+      padding: 0.5rem 0.3rem;
       border-bottom: 1px solid var(--border);
       vertical-align: middle;
     }
@@ -117,13 +120,13 @@
     }
 
     .line-number {
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 800;
       color: #0f172a;
     }
 
     .operator-name {
-      font-size: 0.78rem;
+      font-size: 0.7rem;
       color: var(--muted);
       display: block;
     }
@@ -354,6 +357,26 @@
           }
         }
 
+        // sort by expected time
+        uniqueDepartures.sort((a, b) => {
+  const timeA = new Date(
+    a.expected ||
+    a.expected_departure_time ||
+    a.aimed_departure_time
+  ).getTime();
+
+  const timeB = new Date(
+    b.expected ||
+    b.expected_departure_time ||
+    b.aimed_departure_time
+  ).getTime();
+
+  return timeA - timeB;
+});
+
+const nextThreeBuses = uniqueDepartures.slice(0, 3);
+``
+        
         // Limit to next 3 buses
         const nextThreeBuses = uniqueDepartures.slice(0, 3);
 

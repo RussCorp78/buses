@@ -374,10 +374,8 @@
   return timeA - timeB;
 });
 
-const nextFiveBuses = uniqueDepartures.slice(0, 5);
-``
-        
-        // Limit to next 3 buses
+  
+        // Limit to next 5 buses
         const nextFiveBuses = uniqueDepartures.slice(0, 5);
 
         const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

@@ -374,16 +374,16 @@
   return timeA - timeB;
 });
 
-const nextThreeBuses = uniqueDepartures.slice(0, 3);
+const nextFiveBuses = uniqueDepartures.slice(0, 5);
 ``
         
         // Limit to next 3 buses
-        const nextThreeBuses = uniqueDepartures.slice(0, 3);
+        const nextFiveBuses = uniqueDepartures.slice(0, 5);
 
         const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        statusEl.textContent = `Updated at ${nowStr} (Showing next ${nextThreeBuses.length} buses)`;
+        statusEl.textContent = `Updated at ${nowStr} (Showing next ${nextFiveBuses.length} buses)`;
 
-        nextThreeBuses.forEach((item) => {
+        nextFiveBuses.forEach((item) => {
           const row = document.createElement("tr");
 
           const line = item.line || item.line_name || "Bus";

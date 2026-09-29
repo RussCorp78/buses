@@ -157,16 +157,41 @@
 
     .error { color: #d93025; font-weight: bold; margin-top: 1rem; }
     .status { font-style: italic; color: var(--muted); margin-bottom: 0.5rem; }
+
+    .quick-stops {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.quick-stops button {
+  background: #475569;
+  color: white;
+}
+
+.quick-stops button:hover {
+  background: #334155;
+}
+    
   </style>
 </head>
 <body>
 
   <div class="card">
     <div class="controls">
-      <input type="text" id="stopInput" value="370021171" placeholder="Enter AtcoCode">
+      <input type="text" id="stopInput" value="370021171" placeholder="Enter AtcoCode" onkeydown="if(event.key==='Enter') fetchDepartures();">
       <button class="btn-search" onclick="fetchDepartures()">Get Times</button>
       <button class="btn-refresh" onclick="fetchDepartures()">🔄 Refresh</button>
     </div>
+    
+<div class="quick-stops">
+  <button onclick="setStop('370021171')">🏠Sandygate to Town</button>
+  <button onclick="setStop('370023697')">🏢After work</button>
+  <button onclick="setStop('370021129')">Ranmoor to town</button>
+  <button onclick="setStop('370020777')">Broomhill to home</button>
+</div>
+
 
     <!-- Stop Header Box -->
     <div id="stopHeader" class="stop-header">
@@ -231,7 +256,11 @@
 
       return { displayTime, delayText };
     }
-
+    function setStop(stopCode) {
+      document.getElementById("stopInput").value = stopCode;
+      fetchDepartures();
+    }
+    
     async function fetchDepartures() {
       const stopCode = document.getElementById("stopInput").value.trim();
       const statusEl = document.getElementById("status");
